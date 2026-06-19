@@ -1,0 +1,913 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>CodeStudio | Генератор QR и штрих-кодов</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        /* Telegram Liquid Glass — современный стиль */
+        :root {
+            --bg-gradient-start: #e0eafc;
+            --bg-gradient-end: #cfdef3;
+            --glass-bg: rgba(255, 255, 255, 0.5);
+            --glass-border: rgba(255, 255, 255, 0.6);
+            --glass-shadow: 0 8px 32px rgba(31, 38, 135, 0.15);
+            --text-primary: #1f2937;
+            --text-secondary: #374151;
+            --text-muted: #4b5563;
+            --accent: #3b82f6;
+            --accent-hover: #2563eb;
+            --accent-soft: rgba(59, 130, 246, 0.25);
+            --card-bg: rgba(255, 255, 255, 0.65);
+            --blur-amount: 12px;
+            --border-light: rgba(255, 255, 255, 0.4);
+        }
+
+        body.dark {
+            --bg-gradient-start: #0f0c29;
+            --bg-gradient-end: #24243e;
+            --glass-bg: rgba(20, 20, 40, 0.55);
+            --glass-border: rgba(255, 255, 255, 0.2);
+            --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            --text-primary: #f1f5f9;
+            --text-secondary: #cbd5e1;
+            --text-muted: #94a3b8;
+            --accent: #60a5fa;
+            --accent-hover: #3b82f6;
+            --card-bg: rgba(30, 30, 55, 0.6);
+            --border-light: rgba(255, 255, 255, 0.15);
+        }
+
+        body {
+            font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, sans-serif;
+            background: linear-gradient(135deg, var(--bg-gradient-start), var(--bg-gradient-end));
+            color: var(--text-primary);
+            transition: background 0.3s, color 0.2s;
+            line-height: 1.5;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            backdrop-filter: blur(2px);
+        }
+
+        /* Шапка с эффектом стекла */
+        .header {
+            background: var(--glass-bg);
+            backdrop-filter: blur(var(--blur-amount));
+            border-bottom: 1px solid var(--glass-border);
+            padding: 0 24px;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: var(--glass-shadow);
+        }
+
+        .header-inner {
+            max-width: 1280px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            height: 64px;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 600;
+            font-size: 1.35rem;
+            letter-spacing: -0.3px;
+            background: none;
+            text-decoration: none;
+            color: var(--text-primary);
+            cursor: pointer;
+        }
+
+        .logo-icon {
+            background: var(--accent);
+            width: 32px;
+            height: 32px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 18px;
+            color: white;
+            transition: transform 0.2s;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .theme-toggle {
+            background: rgba(255,255,255,0.2);
+            backdrop-filter: blur(4px);
+            border: 1px solid var(--glass-border);
+            border-radius: 40px;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            color: var(--text-primary);
+            font-size: 1.3rem;
+            transition: 0.2s;
+        }
+
+        .theme-toggle:hover {
+            background: var(--accent);
+            color: white;
+            border-color: transparent;
+        }
+
+        .container {
+            max-width: 1280px;
+            margin: 32px auto;
+            padding: 0 24px;
+            flex: 1;
+        }
+
+        /* Главная карточка — Liquid Glass */
+        .generator-card {
+            background: var(--card-bg);
+            backdrop-filter: blur(var(--blur-amount));
+            border-radius: 40px;
+            box-shadow: var(--glass-shadow);
+            overflow: hidden;
+            transition: 0.3s;
+            border: 1px solid var(--glass-border);
+        }
+
+        .card-header {
+            padding: 28px 32px 12px 32px;
+            border-bottom: 1px solid var(--border-light);
+        }
+
+        .card-header h1 {
+            font-size: 1.8rem;
+            font-weight: 600;
+            letter-spacing: -0.02em;
+            background: linear-gradient(135deg, var(--accent), #a855f7);
+            background-clip: text;
+            -webkit-background-clip: text;
+            color: transparent;
+        }
+
+        .card-header p {
+            color: var(--text-secondary);
+            margin-top: 8px;
+        }
+
+        .card-content {
+            padding: 32px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 40px;
+        }
+
+        .input-section {
+            flex: 1.2;
+            min-width: 280px;
+        }
+
+        .qr-section {
+            flex: 1;
+            min-width: 280px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .form-group {
+            margin-bottom: 24px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+
+        .input-field, .prefix-select {
+            width: 100%;
+            padding: 12px 16px;
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(4px);
+            border: 1px solid var(--glass-border);
+            border-radius: 24px;
+            font-size: 0.95rem;
+            color: var(--text-primary);
+            transition: 0.2s;
+            outline: none;
+        }
+
+        body.dark .input-field, body.dark .prefix-select {
+            background: rgba(20, 20, 40, 0.7);
+        }
+
+        .input-field:focus, .prefix-select:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px var(--accent-soft);
+        }
+
+        .prefix-group {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .clear-prefix-btn {
+            background: rgba(255,255,255,0.3);
+            backdrop-filter: blur(4px);
+            border: 1px solid var(--glass-border);
+            border-radius: 40px;
+            width: 44px;
+            height: 44px;
+            font-size: 1.3rem;
+            font-weight: 600;
+            cursor: pointer;
+            color: var(--text-primary);
+            transition: 0.2s;
+        }
+
+        .clear-prefix-btn:hover {
+            background: var(--accent);
+            color: white;
+        }
+
+        .custom-prefix {
+            display: none;
+            margin-top: 12px;
+        }
+
+        .code-type-selector {
+            display: flex;
+            gap: 12px;
+            background: rgba(255,255,255,0.3);
+            backdrop-filter: blur(4px);
+            padding: 6px;
+            border-radius: 48px;
+            border: 1px solid var(--glass-border);
+        }
+
+        .code-type-btn {
+            flex: 1;
+            text-align: center;
+            padding: 10px 0;
+            border-radius: 40px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: 0.2s;
+            color: var(--text-secondary);
+        }
+
+        .code-type-btn.active {
+            background: var(--accent);
+            color: white;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+
+        .generate-btn {
+            background: var(--accent);
+            border: none;
+            width: 100%;
+            padding: 14px;
+            border-radius: 40px;
+            font-weight: 600;
+            font-size: 1rem;
+            color: white;
+            cursor: pointer;
+            transition: 0.2s;
+            margin-top: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            box-shadow: 0 4px 12px rgba(59,130,246,0.3);
+        }
+
+        .generate-btn:hover {
+            background: var(--accent-hover);
+            transform: translateY(-1px);
+            box-shadow: 0 8px 20px rgba(59,130,246,0.4);
+        }
+
+        .option-group {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-top: 20px;
+            background: rgba(255,255,255,0.3);
+            backdrop-filter: blur(4px);
+            padding: 12px 16px;
+            border-radius: 32px;
+            border: 1px solid var(--glass-border);
+        }
+
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 48px;
+            height: 24px;
+        }
+
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #cbd5e1;
+            transition: .3s;
+            border-radius: 34px;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 18px;
+            width: 18px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: .3s;
+            border-radius: 50%;
+        }
+
+        input:checked + .slider {
+            background-color: var(--accent);
+        }
+
+        input:checked + .slider:before {
+            transform: translateX(24px);
+        }
+
+        /* Область кода — полностью белый фон, прямые углы */
+        .qr-container {
+            background: #ffffff !important;
+            border-radius: 20px !important;   /* легкое скругление для современности, но внутри код прямой */
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid rgba(0,0,0,0.1);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.05);
+            transition: 0.2s;
+            margin-bottom: 20px;
+            min-height: 320px;
+            padding: 28px 20px;
+        }
+
+        #qrcode canvas, #qrcode img {
+            border-radius: 8px !important;
+            background: white;
+            box-shadow: none;
+        }
+
+        #barcode-container {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+            background: white;
+            border-radius: 0 !important;
+            padding: 16px 0;
+        }
+
+        #barcode {
+            background: white;
+            border-radius: 0 !important;
+            padding: 12px;
+            box-sizing: content-box;
+        }
+
+        /* Текст под кодом — жирный, крупный, на белом фоне */
+        .caption-display,
+        #barcode-text {
+            font-weight: 700 !important;
+            font-size: 1.3rem !important;
+            background: transparent !important;
+            color: #1f2937 !important;
+            text-align: center;
+            margin-top: 18px;
+            padding: 6px 12px;
+            letter-spacing: -0.2px;
+            word-break: break-word;
+            max-width: 100%;
+        }
+
+        .caption-display.empty {
+            display: none;
+        }
+
+        .action-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            width: 100%;
+        }
+
+        .download-btn, .print-btn {
+            background: rgba(255,255,255,0.5);
+            backdrop-filter: blur(4px);
+            border: 1px solid var(--glass-border);
+            border-radius: 48px;
+            padding: 12px 20px;
+            width: 100%;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            color: var(--text-primary);
+        }
+
+        .download-btn:hover:not(:disabled),
+        .print-btn:hover {
+            background: var(--accent);
+            color: white;
+            transform: translateY(-2px);
+            border-color: transparent;
+        }
+
+        .download-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* Плашка фичи — тоже стекло */
+        .feature-card {
+            background: var(--card-bg);
+            backdrop-filter: blur(var(--blur-amount));
+            border-radius: 28px;
+            padding: 24px;
+            margin-top: 40px;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            flex-wrap: wrap;
+            border: 1px solid var(--glass-border);
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--glass-shadow);
+        }
+
+        .feature-icon {
+            background: var(--accent-soft);
+            backdrop-filter: blur(4px);
+            width: 56px;
+            height: 56px;
+            border-radius: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+            transition: 0.2s;
+        }
+
+        .feature-text h3 {
+            font-weight: 600;
+            margin-bottom: 6px;
+        }
+
+        .feature-text p {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+        }
+
+        /* Бегун */
+        .runner {
+            position: fixed;
+            bottom: 30px;
+            font-size: 42px;
+            z-index: 1000;
+            pointer-events: none;
+            filter: drop-shadow(0 4px 8px rgba(0,0,0,0.2));
+        }
+
+        .runner.animate {
+            animation: runAcross 3.5s cubic-bezier(0.2, 0.9, 0.4, 1.1) forwards;
+        }
+
+        @keyframes runAcross {
+            0% { left: -80px; transform: scaleX(1); }
+            100% { left: calc(100% + 80px); transform: scaleX(1); }
+        }
+
+        /* Матрица */
+        #matrix-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 9999;
+            display: none;
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(4px);
+        }
+
+        .matrix-text {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #60a5fa;
+            font-size: 2.5rem;
+            font-weight: 800;
+            z-index: 10000;
+            text-shadow: 0 0 12px #3b82f6;
+            display: none;
+            white-space: nowrap;
+            animation: fadeInOut 3s ease forwards;
+        }
+
+        @keyframes fadeInOut {
+            0% { opacity: 0; transform: translate(-50%, -50%) scale(0.9);}
+            20% { opacity: 1; transform: translate(-50%, -50%) scale(1);}
+            80% { opacity: 1; }
+            100% { opacity: 0; transform: translate(-50%, -50%) scale(1.1);}
+        }
+
+        .toast-error {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            background: #ef4444;
+            color: white;
+            padding: 12px 24px;
+            border-radius: 60px;
+            font-weight: 500;
+            z-index: 2000;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+            animation: fadeUp 0.3s ease;
+            backdrop-filter: blur(8px);
+        }
+
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(20px);}
+            to { opacity: 1; transform: translateY(0);}
+        }
+
+        @media print {
+            body * {
+                visibility: hidden;
+            }
+            .qr-container, .qr-container * {
+                visibility: visible;
+            }
+            .qr-container {
+                position: absolute;
+                top: 0;
+                left: 0;
+                width: 100%;
+                margin: 0;
+                padding: 20px;
+                border: none;
+                box-shadow: none;
+                background: white !important;
+            }
+            .caption-display, #barcode-text {
+                color: black !important;
+                font-weight: 700 !important;
+                font-size: 1.3rem !important;
+                background: transparent !important;
+            }
+            .action-buttons, .header, .feature-card, .input-section, .card-header {
+                display: none !important;
+            }
+        }
+
+        @media (max-width: 720px) {
+            .card-content { flex-direction: column; }
+            .card-header h1 { font-size: 1.5rem; }
+            .container { padding: 0 16px; }
+            .caption-display, #barcode-text {
+                font-size: 1.1rem !important;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<header class="header">
+    <div class="header-inner">
+        <div class="logo" id="w-logo">
+            <div class="logo-icon">⟁</div>
+            <span>CodeStudio</span>
+        </div>
+        <button class="theme-toggle" id="themeToggle" aria-label="Сменить тему">🌙</button>
+    </div>
+</header>
+
+<div class="container">
+    <div class="generator-card">
+        <div class="card-header">
+            <h1>Генератор QR и штрих-кодов</h1>
+            <p>Создавайте мгновенно, сохраняйте в высоком качестве</p>
+        </div>
+        <div class="card-content">
+            <div class="input-section">
+                <div class="prefix-group">
+                    <select id="prefix-select" class="prefix-select">
+                        <option value="">Без префикса</option>
+                        <option value="TRBX">TRBX</option>
+                        <option value="WCT">WCT</option>
+                        <option value="custom">Другой префикс...</option>
+                    </select>
+                    <button id="clear-prefix" class="clear-prefix-btn" title="Очистить префикс">✕</button>
+                </div>
+                <div id="custom-prefix-container" class="custom-prefix form-group">
+                    <label for="custom-prefix-input">Ваш префикс</label>
+                    <input type="text" id="custom-prefix-input" class="input-field" placeholder="например: WB" maxlength="20">
+                </div>
+                <div class="form-group">
+                    <label for="text-input">Значение / текст</label>
+                    <input type="text" id="text-input" class="input-field" placeholder="Введите данные для кодирования">
+                </div>
+                <div class="form-group">
+                    <label for="caption-input">Подпись под кодом (опционально)</label>
+                    <input type="text" id="caption-input" class="input-field" placeholder="Текст под QR / штрих-кодом">
+                </div>
+                <div class="form-group">
+                    <label>Формат</label>
+                    <div class="code-type-selector">
+                        <div class="code-type-btn active" data-type="qrcode">📱 QR-код</div>
+                        <div class="code-type-btn" data-type="barcode">📊 Code-128</div>
+                    </div>
+                </div>
+                <button id="generate-btn" class="generate-btn">✨ Сгенерировать</button>
+                <div class="option-group">
+                    <label class="switch">
+                        <input type="checkbox" id="clear-after-generate">
+                        <span class="slider"></span>
+                    </label>
+                    <span class="option-label">Очищать поле после генерации</span>
+                </div>
+            </div>
+            <div class="qr-section">
+                <div class="qr-container">
+                    <div id="qrcode" class="placeholder-text">✨ Код появится здесь</div>
+                    <div id="barcode-container" style="display: none;">
+                        <svg id="barcode"></svg>
+                        <div id="barcode-text"></div>
+                    </div>
+                    <div id="caption-display" class="caption-display empty"></div>
+                </div>
+                <div class="action-buttons">
+                    <button id="download-btn" class="download-btn" disabled>⬇️ Скачать изображение</button>
+                    <button id="print-btn" class="print-btn" disabled>🖨️ Распечатать код</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="feature-card" id="compatibility-card">
+        <div class="feature-icon" id="matrix-icon">⚡</div>
+        <div class="feature-text">
+            <h3>Умная совместимость</h3>
+            <p>Сканируется любыми устройствами. Идеально для товаров, ссылок и визиток.</p>
+        </div>
+    </div>
+</div>
+
+<div id="matrix-canvas"></div>
+<div id="matrix-text" class="matrix-text">⚡ CODE STUDIO ⚡</div>
+
+<script>
+    (function(){
+        // DOM elements
+        const prefixSelect = document.getElementById('prefix-select');
+        const clearPrefix = document.getElementById('clear-prefix');
+        const textInput = document.getElementById('text-input');
+        const captionInput = document.getElementById('caption-input');
+        const generateBtn = document.getElementById('generate-btn');
+        const clearAfter = document.getElementById('clear-after-generate');
+        const qrContainer = document.getElementById('qrcode');
+        const barcodeContainer = document.getElementById('barcode-container');
+        const barcodeSvg = document.getElementById('barcode');
+        const barcodeTextDiv = document.getElementById('barcode-text');
+        const downloadBtn = document.getElementById('download-btn');
+        const printBtn = document.getElementById('print-btn');
+        const captionDisplay = document.getElementById('caption-display');
+        const customContainer = document.getElementById('custom-prefix-container');
+        const customInput = document.getElementById('custom-prefix-input');
+        const codeTypeBtns = document.querySelectorAll('.code-type-btn');
+        
+        let currentCodeType = 'qrcode';
+        let qrInstance = null;
+        let generatedValue = '';
+        
+        // Тема
+        const themeToggle = document.getElementById('themeToggle');
+        themeToggle.addEventListener('click', () => {
+            document.body.classList.toggle('dark');
+            const isDark = document.body.classList.contains('dark');
+            themeToggle.textContent = isDark ? '☀️' : '🌙';
+        });
+        
+        prefixSelect.addEventListener('change', () => {
+            if(prefixSelect.value === 'custom') customContainer.style.display = 'block';
+            else customContainer.style.display = 'none';
+        });
+        clearPrefix.addEventListener('click', () => {
+            prefixSelect.value = '';
+            customContainer.style.display = 'none';
+        });
+        
+        codeTypeBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                codeTypeBtns.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                currentCodeType = btn.dataset.type;
+                if(currentCodeType === 'qrcode') {
+                    qrContainer.style.display = 'flex';
+                    barcodeContainer.style.display = 'none';
+                } else {
+                    qrContainer.style.display = 'none';
+                    barcodeContainer.style.display = 'flex';
+                }
+                if(generatedValue) generateCode();
+            });
+        });
+        
+        function showError(msg) {
+            const toast = document.createElement('div');
+            toast.className = 'toast-error';
+            toast.textContent = msg;
+            document.body.appendChild(toast);
+            setTimeout(() => toast.remove(), 3000);
+        }
+        
+        function generateCode() {
+            let prefix = prefixSelect.value;
+            if(prefix === 'custom') prefix = customInput.value.trim();
+            let value = textInput.value.trim();
+            if(!value) { showError('Введите текст для кодирования'); return; }
+            if(prefix && prefix !== 'custom') value = prefix + value;
+            generatedValue = value;
+            
+            const caption = captionInput.value.trim();
+            if(caption) {
+                captionDisplay.textContent = caption;
+                captionDisplay.classList.remove('empty');
+            } else {
+                captionDisplay.textContent = '';
+                captionDisplay.classList.add('empty');
+            }
+            
+            if(qrInstance) { 
+                qrInstance.clear(); 
+                qrContainer.innerHTML = ''; 
+            } else {
+                qrContainer.innerHTML = '';
+            }
+            barcodeSvg.innerHTML = '';
+            barcodeTextDiv.textContent = '';
+            
+            if(currentCodeType === 'qrcode') {
+                qrContainer.style.display = 'flex';
+                barcodeContainer.style.display = 'none';
+                qrInstance = new QRCode(qrContainer, {
+                    text: value,
+                    width: 220,
+                    height: 220,
+                    colorDark: "#000000",
+                    colorLight: "#ffffff",
+                    correctLevel: QRCode.CorrectLevel.H
+                });
+            } else {
+                qrContainer.style.display = 'none';
+                barcodeContainer.style.display = 'flex';
+                JsBarcode(barcodeSvg, value, {
+                    format: "CODE128",
+                    displayValue: false,
+                    width: 2,
+                    height: 90,
+                    margin: 10,
+                    background: "#ffffff",
+                    lineColor: "#000000"
+                });
+                barcodeTextDiv.textContent = value;
+            }
+            downloadBtn.disabled = false;
+            printBtn.disabled = false;
+            if(clearAfter.checked) textInput.value = '';
+        }
+        
+        function downloadCode() {
+            if(!generatedValue) return;
+            if(currentCodeType === 'qrcode') {
+                const canvas = qrContainer.querySelector('canvas');
+                if(canvas) {
+                    const link = document.createElement('a');
+                    link.download = 'qr_code.png';
+                    link.href = canvas.toDataURL('image/png');
+                    link.click();
+                } else showError('Ошибка генерации QR');
+            } else {
+                const svgData = new XMLSerializer().serializeToString(barcodeSvg);
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                const img = new Image();
+                img.onload = () => {
+                    canvas.width = img.width;
+                    canvas.height = img.height;
+                    ctx.fillStyle = '#ffffff';
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+                    ctx.drawImage(img, 0, 0);
+                    const link = document.createElement('a');
+                    link.download = 'barcode.png';
+                    link.href = canvas.toDataURL('image/png');
+                    link.click();
+                };
+                img.src = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgData)));
+            }
+        }
+        
+        function printCode() {
+            if(!generatedValue) {
+                showError('Сначала сгенерируйте код');
+                return;
+            }
+            window.print();
+        }
+        
+        generateBtn.addEventListener('click', generateCode);
+        downloadBtn.addEventListener('click', downloadCode);
+        printBtn.addEventListener('click', printCode);
+        textInput.addEventListener('keypress', e => { if(e.key === 'Enter') generateCode(); });
+        captionInput.addEventListener('keypress', e => { if(e.key === 'Enter') generateCode(); });
+        
+        // Пасхалки (без игр)
+        const wLogo = document.getElementById('w-logo');
+        wLogo.addEventListener('click', () => {
+            const runner = document.createElement('div');
+            runner.className = 'runner animate';
+            runner.textContent = '🏃‍♂️📦';
+            document.body.appendChild(runner);
+            setTimeout(() => runner.remove(), 3500);
+        });
+        
+        const matrixIcon = document.getElementById('matrix-icon');
+        matrixIcon.addEventListener('click', () => {
+            const matrixCanvas = document.getElementById('matrix-canvas');
+            const matrixText = document.getElementById('matrix-text');
+            matrixCanvas.style.display = 'block';
+            matrixText.style.display = 'block';
+            const canvas = document.createElement('canvas');
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            matrixCanvas.appendChild(canvas);
+            const ctx = canvas.getContext('2d');
+            const fontSize = 14;
+            const columns = canvas.width / fontSize;
+            const drops = Array(Math.floor(columns)).fill(1);
+            const chars = "01CODE⧩⧩QR⧩WILDBERRIES";
+            const interval = setInterval(() => {
+                ctx.fillStyle = 'rgba(0,0,0,0.07)';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.fillStyle = '#60a5fa';
+                ctx.font = fontSize + 'px monospace';
+                for(let i=0;i<drops.length;i++) {
+                    const text = chars[Math.floor(Math.random()*chars.length)];
+                    ctx.fillText(text, i*fontSize, drops[i]*fontSize);
+                    if(drops[i]*fontSize > canvas.height && Math.random()>0.975) drops[i]=0;
+                    drops[i]++;
+                }
+            }, 40);
+            setTimeout(() => {
+                clearInterval(interval);
+                matrixCanvas.innerHTML = '';
+                matrixCanvas.style.display = 'none';
+                matrixText.style.display = 'none';
+            }, 6000);
+        });
+    })();
+</script>
+</body>
+</html>

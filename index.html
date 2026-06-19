@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>CodeStudio Ultimate</title>
+<link rel="stylesheet" href="assets/styles.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
+</head>
+<body>
+<div class="dock">
+<button data-panel="qr">📱</button>
+<button data-panel="calc">🧮</button>
+<button data-panel="notes">📝</button>
+<button data-panel="ai">🤖</button>
+</div>
+
+<div class="hero">
+<h1>CodeStudio Ultimate</h1>
+<p>Liquid Glass • GitHub Pages • QR • Barcode</p>
+<div id="qrcode"></div>
+</div>
+
+<div class="panel" id="calcPanel"><input id="expr"><button onclick="runCalc()">=</button><div id="calcOut"></div></div>
+<div class="panel" id="notesPanel"><textarea id="notes"></textarea></div>
+<div class="panel" id="aiPanel">Подключите OpenRouter/Gemini API</div>
+
+<script src="assets/app.js"></script>
+<script src="assets/tools.js"></script>
+</body>
+</html>
